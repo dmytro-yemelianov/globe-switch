@@ -3,18 +3,23 @@
 // Replaces macOS's own Globe handling, which goes through TextInputSwitcher: launchd idle-kills
 // that helper a few minutes after each use (the next press is spent relaunching it), and its
 // picker HUD swallows keystrokes typed right after switching. Needs "Press 🌐 key to: Do Nothing"
-// so the system doesn't toggle too, and Input Monitoring access for this binary.
-//
-//   globe-switch            run the handler (normally as a LaunchAgent, see install.sh)
-//   globe-switch doctor     check the agent, its permission, the 🌐 setting and the layouts
-//   globe-switch --list     print the layouts a tap cycles through
-//   globe-switch --version
+// so the system doesn't toggle too, and Input Monitoring access for GlobeSwitch.app.
 import AppKit
 import Carbon
 import CoreGraphics
 import Foundation
 import GlobeSwitchCore
 import os
+
+let usage = """
+    usage: globe-switch <command>
+      install     copy GlobeSwitch.app to ~/Applications, start it at login and hand 🌐 to it
+      uninstall   remove the LaunchAgent and the app, and give 🌐 back to macOS
+      doctor      check the agent, its permissions, the 🌐 setting, layouts and settings
+      run         run the agent in this terminal, for debugging
+      --list      print the layout IDs a tap cycles through
+      --version
+    """
 
 let logger = Logger(subsystem: GlobeSwitch.label, category: "agent")
 let logToTerminal = isatty(STDERR_FILENO) != 0
@@ -37,45 +42,94 @@ func context() -> String {
     return "front=\(front) TextInputSwitcher=\(switcher)"
 }
 
+/// Double-clicking GlobeSwitch.app installs it and shows what the doctor found.
+func openedFromFinder() -> Int32 {
+    let status = install(runDoctorAfter: false)
+    Thread.sleep(forTimeInterval: 1) // let the agent start before asking it for its state
+    let diagnosis = diagnose()
+    NSApplication.shared.setActivationPolicy(.accessory)
+    NSApp.activate(ignoringOtherApps: true)
+    let alert = NSAlert()
+    alert.messageText = status == 0 && diagnosis.failures == 0 ? "GlobeSwitch is running" : "GlobeSwitch needs attention"
+    alert.informativeText = diagnosis.lines.joined(separator: "\n")
+    alert.addButton(withTitle: "OK")
+    if diagnosis.needsInputMonitoring {
+        alert.addButton(withTitle: "Open Input Monitoring")
+    }
+    if alert.runModal() == .alertSecondButtonReturn,
+       let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+        NSWorkspace.shared.open(url)
+    }
+    return status
+}
+
+// Run through a symlink (~/.local/bin, Homebrew's bin), Bundle.main is not the app, so install has
+// nothing to copy. Start again from the real path inside GlobeSwitch.app.
+if Bundle.main.bundleURL.pathExtension != "app", let executable = Bundle.main.executableURL {
+    let real = executable.resolvingSymlinksInPath()
+    if real != executable, real.deletingLastPathComponent().path.hasSuffix(".app/Contents/MacOS") {
+        execv(real.path, CommandLine.unsafeArgv)
+    }
+}
+
 switch CommandLine.arguments.dropFirst().first {
-case nil:
-    break
+case nil where ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"] == GlobeSwitch.label:
+    break // started by launchd: run the agent
+case nil where isatty(STDIN_FILENO) == 0:
+    exit(openedFromFinder())
+case "run":
+    if let other = requestAgentStatus(timeout: 0.5) {
+        printError("the agent is already running (pid \(other.pid)); stop it first: launchctl bootout \(agentJob)")
+        exit(1)
+    }
+case "install":
+    exit(install(runDoctorAfter: !CommandLine.arguments.contains("--no-doctor")))
+case "uninstall":
+    exit(uninstall())
+case "doctor":
+    exit(runDoctor())
 case "--list":
     for source in keyboardLayouts() { print(sourceID(source) ?? "?") }
     exit(0)
 case "--version":
     print(GlobeSwitch.version)
     exit(0)
-case "doctor":
-    exit(runDoctor())
 case "--check-access":
     exit(CGPreflightListenEventAccess() ? 0 : 1)
-case let unknown?:
-    FileHandle.standardError.write(Data("unknown argument \(unknown); usage: globe-switch [doctor | --list | --version]\n".utf8))
+default:
+    FileHandle.standardError.write(Data("\(usage)\n".utf8))
     exit(2)
 }
 
+// The agent.
+
 let fnKeyCode: Int64 = 63
 
-var detector = TapDetector()
+var settings = readSettings()
+var detector = TapDetector(maxTapNanos: settings.tapWindowNanos)
 var tap: CFMachPort?
 var lastSwitchAt: UInt64 = 0
 var lastSwitchTo: String?
 var switches = 0
 var bounces = 0
+/// Layouts in the order they were last used, most recent first, for `CycleOrder=recent`.
+var recentLayouts = [currentSourceID()]
 
 func switchToNextLayout() {
     let layouts = keyboardLayouts()
-    let currentID = currentSourceID()
-    guard let next = nextLayoutIndex(after: layouts.firstIndex { sourceID($0) == currentID }, count: layouts.count) else {
+    guard let nextID = nextLayout(current: currentSourceID(), enabled: layouts.map { sourceID($0) ?? "" },
+                                  skipped: settings.skippedLayouts, recent: recentLayouts, order: settings.cycleOrder),
+          let next = layouts.first(where: { sourceID($0) == nextID }) else {
         return
     }
     switches += 1
     lastSwitchAt = now()
-    lastSwitchTo = sourceID(layouts[next])
-    let status = TISSelectInputSource(layouts[next])
+    lastSwitchTo = nextID
+    let status = TISSelectInputSource(next)
     if status != noErr {
-        log("TISSelectInputSource(\(lastSwitchTo ?? "?")) failed: \(status) \(context())", .error)
+        log("TISSelectInputSource(\(nextID)) failed: \(status) \(context())", .error)
+    } else if settings.showIndicator {
+        Indicator.show(localizedName(next) ?? nextID)
     }
 }
 
@@ -88,6 +142,11 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
         log("event tap re-enabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input"))")
     case .flagsChanged where event.getIntegerValueField(.keyboardEventKeycode) == fnKeyCode:
         let pressed = event.flags.contains(.maskSecondaryFn)
+        if pressed {
+            // Pick up `defaults write` changes before this press is judged.
+            settings = readSettings()
+            detector.maxTapNanos = settings.tapWindowNanos
+        }
         switch detector.handle(pressed ? .fnDown(at: now()) : .fnUp(at: now())) {
         case .tap: switchToNextLayout()
         case .heldTooLong(let nanos): log("fn held \(ms(nanos))ms, too long for a tap")
@@ -118,12 +177,8 @@ func installTap() -> Bool {
 
 /// macOS caches the Input Monitoring answer for the life of a process, so ask a fresh copy of ourselves.
 func listenAccessGranted() -> Bool {
-    let check = Process()
-    check.executableURL = Bundle.main.executableURL
-    check.arguments = ["--check-access"]
-    guard (try? check.run()) != nil else { return false }
-    check.waitUntilExit()
-    return check.terminationStatus == 0
+    guard let executable = Bundle.main.executableURL else { return false }
+    return run(executable, ["--check-access"], quiet: true) == 0
 }
 
 var fnUsageAtLastCheck: Int? = FnUsage.doNothing.rawValue
@@ -149,17 +204,21 @@ func healthCheck() {
         log("🌐 is set to Do Nothing again")
     } else {
         log("🌐 is set to \(FnUsage.describe(fnUsage)), so macOS reacts to taps too and they may bounce; "
-            + "set it to Do Nothing or run install.sh again", .error)
+            + "set it to Do Nothing or run globe-switch install again", .error)
     }
 }
 
-// Something else switching the layout right after a tap means macOS is handling 🌐 as well
-// (see install.sh); log it so the bounce is visible.
+// Every layout change, whoever makes it, feeds the recent list. Something else switching right after
+// a tap means macOS is handling 🌐 as well (see restartInputAgents); log it so the bounce is visible.
 DistributedNotificationCenter.default().addObserver(
     forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
     object: nil, queue: nil
 ) { _ in
     let id = currentSourceID()
+    recentLayouts.removeAll { $0 == id }
+    recentLayouts.insert(id, at: 0)
+    if recentLayouts.count > 10 { recentLayouts.removeLast() }
+
     let since = now() - lastSwitchAt
     guard since < 1_000_000_000, id != lastSwitchTo else { return }
     bounces += 1
@@ -175,6 +234,10 @@ DistributedNotificationCenter.default().addObserver(forName: statusRequest, obje
     DistributedNotificationCenter.default().postNotificationName(
         statusReply, object: status.json, userInfo: nil, deliverImmediately: true)
 }
+
+// An accessory app (no Dock icon, never activated), so the indicator panel can be shown.
+let app = NSApplication.shared
+app.setActivationPolicy(.accessory)
 
 // Without Input Monitoring access the tap is still created but never sees key events,
 // so wait for the grant before installing it.
@@ -193,4 +256,4 @@ if CGPreflightListenEventAccess() && installTap() {
 }
 healthCheck()
 Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in healthCheck() }
-CFRunLoopRun()
+app.run()

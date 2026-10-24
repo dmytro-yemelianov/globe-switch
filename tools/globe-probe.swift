@@ -8,6 +8,7 @@
 //   globe-probe chord                               fn held while shift is tapped: must not switch
 //   globe-probe hold                                fn held 900 ms: must not switch
 //   globe-probe scroll                              fn held while the wheel scrolls: must not switch
+//   globe-probe type [count] [typeAfterMs]          tap 🌐, then type into our own field: no lost keys
 //   globe-probe select <inputSourceID>              select a layout directly, e.g. com.apple.keylayout.ABC
 import Carbon
 import Cocoa
@@ -135,6 +136,48 @@ case "scroll":
     pump(1000)
     print("scroll \(short(before))→\(short(currentID())) \(currentID() == before && changes.isEmpty ? "NO-SWITCH(ok)" : "SWITCHED(bad)")")
 
+case "type":
+    // Tap 🌐, then type a letter <typeAfterMs> later into a text field of our own, <count> times.
+    // Every letter must arrive and our window must stay frontmost: nothing may take the keyboard,
+    // the optional indicator included.
+    let count = args.count > 2 ? Int(args[2])! : 5
+    let typeAfter = args.count > 3 ? Int(args[3])! : 40
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    app.finishLaunching()
+    // RunLoop.run doesn't hand key events to windows; the application has to dispatch them.
+    func pumpEvents(_ ms: Int) {
+        let until = Date().addingTimeInterval(Double(ms) / 1000)
+        while let event = app.nextEvent(matching: .any, until: until, inMode: .default, dequeue: true) {
+            app.sendEvent(event)
+        }
+    }
+    let window = NSWindow(contentRect: NSRect(x: 200, y: 200, width: 360, height: 60), styleMask: [.titled], backing: .buffered, defer: false)
+    let field = NSTextField(frame: NSRect(x: 10, y: 15, width: 340, height: 28))
+    window.contentView?.addSubview(field)
+    window.makeKeyAndOrderFront(nil)
+    app.activate(ignoringOtherApps: true)
+    window.makeFirstResponder(field)
+    pumpEvents(800)
+    var indicatorSeen = false
+    for i in 1...count {
+        let before = field.stringValue.count
+        tapGlobe()
+        pumpEvents(typeAfter)
+        for down in [true, false] {
+            let e = CGEvent(keyboardEventSource: hid, virtualKey: 0, keyDown: down)! // the A key
+            e.post(tap: .cghidEventTap)
+        }
+        pumpEvents(150)
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        indicatorSeen = indicatorSeen || windows.contains { ($0[kCGWindowOwnerName as String] as? String) == "GlobeSwitch" }
+        let arrived = field.stringValue.count - before
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
+        print("#\(i) layout=\(short(currentID())) typed=\(arrived == 1 ? "ok" : "LOST") front=\(front ? "ok" : "STOLEN")")
+        pumpEvents(400)
+    }
+    print("text=\"\(field.stringValue)\" indicator=\(indicatorSeen ? "seen" : "not seen")")
+
 default:
-    print("usage: status | press <count> <gapMs> [typeAfterMs] | chord | hold | scroll | select <id>")
+    print("usage: status | press <count> <gapMs> [typeAfterMs] | chord | hold | scroll | type [count] [typeAfterMs] | select <id>")
 }

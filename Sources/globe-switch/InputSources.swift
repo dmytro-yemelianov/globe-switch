@@ -30,10 +30,3 @@ func keyboardLayouts() -> [TISInputSource] {
     }
     return list.filter { stringProperty($0, kTISPropertyInputSourceType).map(typing.contains) ?? false }
 }
-
-/// The raw "Press 🌐 key to" value, read fresh: System Settings may have changed it since the last read.
-func fnUsageSetting() -> Int? {
-    let domain = "com.apple.HIToolbox" as CFString
-    CFPreferencesAppSynchronize(domain)
-    return CFPreferencesCopyAppValue("AppleFnUsageType" as CFString, domain) as? Int
-}

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "globe-switch",
-    platforms: [.macOS(.v11)],
+    platforms: [.macOS(.v13)],
     targets: [
         // Pure logic with no system dependencies, so it can be tested without Input Monitoring.
         .target(name: "GlobeSwitchCore"),

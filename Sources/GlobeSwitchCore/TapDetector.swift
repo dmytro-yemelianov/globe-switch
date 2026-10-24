@@ -15,7 +15,7 @@ public struct TapDetector {
         case heldTooLong(nanos: UInt64)
     }
 
-    public let maxTapNanos: UInt64
+    public var maxTapNanos: UInt64
     private var downAt: UInt64?
     private var chorded = false
 

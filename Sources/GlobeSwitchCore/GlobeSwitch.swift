@@ -1,13 +1,35 @@
 public enum GlobeSwitch {
-    public static let version = "0.2.0"
-    /// LaunchAgent label, code-signing identifier and unified-log subsystem.
+    public static let version = "0.3.0"
+    /// Bundle identifier, LaunchAgent label, preferences domain and unified-log subsystem.
     public static let label = "dev.yemelianov.globe-switch"
 }
 
-/// Index of the layout a tap switches to: the one after `current`, wrapping around, or the first
-/// one when the current layout is not in the list. Nil when there is nothing to switch to.
-public func nextLayoutIndex(after current: Int?, count: Int) -> Int? {
-    guard count > 1 else { return nil }
-    guard let current, current >= 0, current < count else { return 0 }
-    return (current + 1) % count
+/// How a tap picks the next layout.
+public enum CycleOrder: String, CaseIterable {
+    /// The next enabled layout in system order.
+    case list
+    /// Back to the most recently used other layout, like a quick Ctrl+Space.
+    case recent
+}
+
+/// The layout a tap switches to, or nil when there is nothing to switch to.
+/// - Parameters:
+///   - enabled: selectable layouts in system order.
+///   - skipped: layouts the user excluded from switching.
+///   - recent: layouts in the order they were last used, most recent first.
+public func nextLayout(current: String?, enabled: [String], skipped: Set<String> = [],
+                       recent: [String] = [], order: CycleOrder = .list) -> String? {
+    let others = enabled.filter { $0 != current && !skipped.contains($0) }
+    guard !others.isEmpty else { return nil }
+    if order == .recent, let back = recent.first(where: others.contains) {
+        return back
+    }
+    // Walk on from the current layout's place in the full list, so a skipped or unknown current
+    // layout still moves forward instead of jumping back to the start.
+    let start = current.flatMap { enabled.firstIndex(of: $0) } ?? -1
+    for offset in 1...enabled.count {
+        let candidate = enabled[(start + offset) % enabled.count]
+        if others.contains(candidate) { return candidate }
+    }
+    return others[0]
 }

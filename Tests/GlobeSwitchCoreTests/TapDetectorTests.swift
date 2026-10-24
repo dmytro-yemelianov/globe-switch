@@ -80,32 +80,3 @@ private let ms: UInt64 = 1_000_000
         #expect(detector.handle(.fnUp(at: 400 * ms)) == .tap)
     }
 }
-
-@Suite struct LayoutCycleTests {
-    @Test func movesToTheNextLayoutAndWraps() {
-        #expect(nextLayoutIndex(after: 0, count: 2) == 1)
-        #expect(nextLayoutIndex(after: 1, count: 2) == 0)
-        #expect(nextLayoutIndex(after: 1, count: 3) == 2)
-        #expect(nextLayoutIndex(after: 2, count: 3) == 0)
-    }
-
-    @Test func unknownCurrentLayoutStartsAtTheFirst() {
-        #expect(nextLayoutIndex(after: nil, count: 3) == 0)
-        #expect(nextLayoutIndex(after: 7, count: 3) == 0)
-        #expect(nextLayoutIndex(after: -1, count: 3) == 0)
-    }
-
-    @Test func nothingToSwitchToWithFewerThanTwoLayouts() {
-        #expect(nextLayoutIndex(after: 0, count: 1) == nil)
-        #expect(nextLayoutIndex(after: nil, count: 0) == nil)
-    }
-}
-
-@Suite struct FnUsageTests {
-    @Test func describesKnownMissingAndUnknownValues() {
-        #expect(FnUsage.describe(0) == "Do Nothing")
-        #expect(FnUsage.describe(1) == "Change Input Source")
-        #expect(FnUsage.describe(nil) == "not set (macOS default)")
-        #expect(FnUsage.describe(9) == "unknown value 9")
-    }
-}

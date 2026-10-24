@@ -15,12 +15,20 @@ jobs:
       - run: swift --version
       - run: swift build -c release -Xswiftc -warnings-as-errors
       - run: swift test -Xswiftc -warnings-as-errors
-      - run: "$(swift build -c release --show-bin-path)/globe-switch --version"
-      # The probe is a standalone script; keep it compiling.
+      # Intel Macs build from source too; make sure both architectures compile.
+      - run: swift build -c release --arch arm64 --arch x86_64
+      - name: Build and check GlobeSwitch.app
+        run: |
+          scripts/build-app.sh
+          plutil -lint .build/GlobeSwitch.app/Contents/Info.plist
+          codesign --verify --deep --strict .build/GlobeSwitch.app
+          .build/GlobeSwitch.app/Contents/MacOS/globe-switch --version
+      # The tools are standalone scripts; keep them compiling.
       - run: swiftc -O -warnings-as-errors -o globe-probe tools/globe-probe.swift
+      - run: swiftc -typecheck tools/make-icon.swift
 
   shellcheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: shellcheck install.sh
+      - run: shellcheck install.sh scripts/build-app.sh

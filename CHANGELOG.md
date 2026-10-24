@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-10-24
+
+- New: GlobeSwitch.app. `globe-switch install` copies it to `~/Applications` and points the LaunchAgent at its executable, with `AssociatedBundleIdentifiers` so that Login Items & Extensions lists it as GlobeSwitch. Input Monitoring is granted to GlobeSwitch, with its own icon, instead of a bare binary path. Opening the app from Finder installs it too and shows the doctor's report. Requires macOS 13.
+- Not used: `SMAppService`. launchd found the program of an SMAppService agent through LaunchServices by bundle ID, picked another copy of GlobeSwitch.app (a removed Homebrew build) and could not restart the agent, so the LaunchAgent keeps an absolute path.
+- New: Homebrew. `brew install dmytro-yemelianov/tap/globe-switch` builds the app from source; then run `globe-switch install`.
+- New: settings in the `dev.yemelianov.globe-switch` domain, reread on every 🌐 press: `TapWindowMilliseconds`, `SkippedLayouts`, `CycleOrder` (`list`, or `recent` to go back to the previous layout like a quick Ctrl+Space) and `ShowIndicator`.
+- New: an optional indicator with the new layout's name. It is a panel that never becomes the key window and never activates the app, so it cannot swallow keystrokes.
+- New: the doctor reports the LaunchAgent (including when it is turned off in Login Items), the code signature (ad-hoc means Input Monitoring has to be granted again after each update), the settings and SkippedLayouts entries that aren't enabled.
+- Changed: `install` and `uninstall` are commands of the binary, shared by `install.sh` and Homebrew. Upgrading from 0.1 or 0.2 points the LaunchAgent at the app and removes the old binary; Input Monitoring then needs a new grant for GlobeSwitch.
+- Changed: the app is signed with the hardened runtime, and the binary finds its app bundle when run through a symlink.
+- Development: CI also builds for Intel, builds and verifies the app bundle, and shellchecks `scripts/build-app.sh`. The probe gained a `type` check: tap 🌐, then type into its own text field 40 ms later, and every letter must arrive.
+
 ## 0.2.0 — 2026-10-24
 
 - New: `globe-switch doctor` asks the running agent for its state and checks Input Monitoring, the 🌐 setting and the enabled layouts. It prints a fix for each problem and exits with status 1 when something is broken. `install.sh` runs it at the end.
