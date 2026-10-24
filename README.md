@@ -131,12 +131,17 @@ Settings live in the `dev.yemelianov.globe-switch` preferences domain. The agent
 | `CycleOrder` | `list` | `list` goes to the next layout in system order; `recent` goes back to the previous one, like a quick Ctrl+Space |
 | `ShowIndicator` | `true` | Shows the new layout's flag for a moment after each switch |
 | `LayoutFlags` | none | Your own flag per layout: a region code such as `GB`, or any text |
+| `PlaySound` | `true` | Plays a short click after each switch |
+| `Sound` | `Click` | GlobeSwitch's own soft click, or a sound from `/System/Library/Sounds` (`Tink`, `Pop`, …) or `~/Library/Sounds` |
+| `SoundVolume` | `0.35` | Relative to the system volume, from 0 to 1 |
 
 ```sh
 defaults write dev.yemelianov.globe-switch CycleOrder -string recent
 defaults write dev.yemelianov.globe-switch SkippedLayouts -array com.apple.keylayout.Russian
 defaults write dev.yemelianov.globe-switch LayoutFlags -dict com.apple.keylayout.ABC GB
 defaults write dev.yemelianov.globe-switch ShowIndicator -bool false
+defaults write dev.yemelianov.globe-switch SoundVolume -float 0.2
+defaults write dev.yemelianov.globe-switch PlaySound -bool false
 defaults delete dev.yemelianov.globe-switch ShowIndicator    # back to the default
 ```
 
@@ -244,7 +249,7 @@ swiftc -O -o build/globe-probe tools/globe-probe.swift
 ./build/globe-probe type 5 40         # tap, then type 40 ms later: every letter arrives
 ```
 
-The app icon is drawn by `swift tools/make-icon.swift`, which writes `App/AppIcon.icns`.
+The app icon is drawn by `swift tools/make-icon.swift`, which writes `App/AppIcon.icns`, and the click is synthesized by `swift tools/make-click.swift`, which writes `App/Click.wav`.
 
 ## Footprint
 

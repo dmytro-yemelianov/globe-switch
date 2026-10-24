@@ -26,6 +26,7 @@ jobs:
       # The tools are standalone scripts; keep them compiling.
       - run: swiftc -O -warnings-as-errors -o globe-probe tools/globe-probe.swift
       - run: swiftc -typecheck tools/make-icon.swift
+      - run: swiftc -typecheck tools/make-click.swift
 
   shellcheck:
     runs-on: ubuntu-latest

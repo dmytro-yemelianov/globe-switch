@@ -126,11 +126,16 @@ func switchToNextLayout() {
     lastSwitchAt = now()
     lastSwitchTo = nextID
     let status = TISSelectInputSource(next)
-    if status != noErr {
+    guard status == noErr else {
         log("TISSelectInputSource(\(nextID)) failed: \(status) \(context())", .error)
-    } else if settings.showIndicator {
+        return
+    }
+    if settings.showIndicator {
         let shown = flagAndName(next, overrides: settings.layoutFlags)
         Indicator.show(flag: shown.flag, name: shown.name)
+    }
+    if settings.playSound {
+        SwitchSound.play(settings.sound, volume: settings.soundVolume)
     }
 }
 

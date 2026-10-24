@@ -73,6 +73,9 @@ private let rus = "com.apple.keylayout.Russian"
         #expect(settings.cycleOrder == .list)
         #expect(settings.showIndicator)
         #expect(settings.layoutFlags.isEmpty)
+        #expect(settings.playSound)
+        #expect(settings.sound == "Click")
+        #expect(settings.soundVolume == 0.35)
         #expect(settings.changes.isEmpty)
     }
 
@@ -83,6 +86,9 @@ private let rus = "com.apple.keylayout.Russian"
             "CycleOrder": "recent",
             "ShowIndicator": false,
             "LayoutFlags": [abc: "GB"],
+            "PlaySound": false,
+            "Sound": "Pop",
+            "SoundVolume": 0.2,
         ])
         #expect(settings.tapWindowMilliseconds == 400)
         #expect(settings.tapWindowNanos == 400_000_000)
@@ -90,15 +96,20 @@ private let rus = "com.apple.keylayout.Russian"
         #expect(settings.cycleOrder == .recent)
         #expect(!settings.showIndicator)
         #expect(settings.layoutFlags == [abc: "GB"])
+        #expect(!settings.playSound)
+        #expect(settings.sound == "Pop")
+        #expect(settings.soundVolume == 0.2)
         #expect(settings.changes == [
             "TapWindowMilliseconds=400", "SkippedLayouts=\(rus)", "CycleOrder=recent", "ShowIndicator=false",
-            "LayoutFlags=\(abc):GB",
+            "LayoutFlags=\(abc):GB", "PlaySound=false", "Sound=Pop", "SoundVolume=0.2",
         ])
     }
 
-    @Test func clampsTheTapWindow() {
+    @Test func clampsTheTapWindowAndTheVolume() {
         #expect(Settings(values: ["TapWindowMilliseconds": 5]).tapWindowMilliseconds == 100)
         #expect(Settings(values: ["TapWindowMilliseconds": 60_000]).tapWindowMilliseconds == 2000)
+        #expect(Settings(values: ["SoundVolume": 3.0]).soundVolume == 1)
+        #expect(Settings(values: ["SoundVolume": -1.0]).soundVolume == 0)
     }
 
     @Test func ignoresMalformedValues() {
@@ -108,6 +119,9 @@ private let rus = "com.apple.keylayout.Russian"
             "CycleOrder": "random",
             "ShowIndicator": "yes",
             "LayoutFlags": ["GB"],
+            "PlaySound": "loud",
+            "Sound": "",
+            "SoundVolume": "quiet",
         ])
         #expect(settings == Settings())
     }

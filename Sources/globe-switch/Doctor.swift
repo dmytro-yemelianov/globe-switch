@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import GlobeSwitchCore
 import Security
 
@@ -102,6 +102,10 @@ func diagnose() -> Diagnosis {
         result.report("✓", "settings", "defaults")
     } else {
         result.report("✓", "settings", settings.changes.joined(separator: ", "))
+    }
+    if settings.playSound && NSSound(named: NSSound.Name(settings.sound)) == nil {
+        result.report("!", "settings", "Sound \(settings.sound) was not found, so switches are silent",
+                      fix: "use Click, or a name from /System/Library/Sounds or ~/Library/Sounds, such as Tink or Pop")
     }
     let unknown = settings.skippedLayouts.subtracting(ids).sorted()
     if !unknown.isEmpty {
