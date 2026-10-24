@@ -17,7 +17,7 @@ func languages(_ source: TISInputSource) -> [String] {
 }
 
 /// How the indicator and the doctor show a layout: its flag, if it has one, and its name.
-func flagAndName(_ source: TISInputSource, overrides: [String: String]) -> (flag: String?, name: String) {
+func flagAndName(_ source: TISInputSource, overrides: [String: String]) -> (flag: LayoutFlag?, name: String) {
     let id = sourceID(source) ?? "?"
     return (layoutFlag(id: id, languages: languages(source), overrides: overrides), localizedName(source) ?? id)
 }

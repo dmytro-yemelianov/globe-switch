@@ -89,7 +89,7 @@ func diagnose() -> Diagnosis {
     let switchable = layouts.filter { !settings.skippedLayouts.contains(sourceID($0) ?? "") }
     let names = switchable.map { source -> String in
         let shown = flagAndName(source, overrides: settings.layoutFlags)
-        return [shown.flag, shown.name].compactMap { $0 }.joined(separator: " ")
+        return [shown.flag?.description, shown.name].compactMap { $0 }.joined(separator: " ")
     }
     if switchable.count > 1 {
         result.report("✓", "layouts", names.joined(separator: " → "))

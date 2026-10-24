@@ -1,5 +1,5 @@
 public enum GlobeSwitch {
-    public static let version = "0.4.0"
+    public static let version = "0.5.0"
     /// Bundle identifier, LaunchAgent label, preferences domain and unified-log subsystem.
     public static let label = "dev.yemelianov.globe-switch"
 }

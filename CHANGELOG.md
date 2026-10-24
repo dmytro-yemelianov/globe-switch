@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 — 2026-10-24
+
+- Changed: the indicator draws flags as pixel art, sharp rectangles of 22 × 14 pixels that are scaled without smoothing. Ukraine and the United Kingdom are drawn so far; other countries keep their emoji flag until theirs is drawn.
+
 ## 0.4.0 — 2026-10-24
 
 - New: the indicator lines up every layout's flag with no background. The active one is in the middle, larger and glowing in the accent colour, and on a switch the row slides with a spring so the new layout moves to the middle; quick taps carry on from wherever the row is. Flags come from the country a layout is named after (British → 🇬🇧), otherwise from its language (Ukrainian → 🇺🇦, ABC → 🇺🇸); a layout without one shows its name.

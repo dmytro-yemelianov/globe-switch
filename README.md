@@ -147,6 +147,8 @@ defaults delete dev.yemelianov.globe-switch ShowIndicator    # back to the defau
 
 The indicator lines up every layout's flag, with no background around them. The active one sits in the middle, larger and glowing in your accent colour; on a switch the row slides so the new layout moves to the middle. Each layout gets the flag of the country it is named after (British → 🇬🇧), otherwise the usual one for its language (Ukrainian → 🇺🇦, ABC → 🇺🇸), or yours from `LayoutFlags`. A layout without any flag shows its name. `globe-switch doctor` lists the flags it will use.
 
+The flags are pixel art: sharp rectangles of 22 × 14 pixels. So far 🇺🇦 and 🇬🇧 are drawn; other countries show their emoji flag until theirs is.
+
 The indicator cannot take keystrokes the way macOS's picker does. It is a panel that never becomes the key window, doesn't activate GlobeSwitch, and ignores the mouse; `tools/globe-probe type` checks that every letter typed right after a tap still arrives, and refuses to type when another app is in front.
 
 ## Privacy
@@ -158,7 +160,7 @@ Input Monitoring lets an app see every key you press, so here is exactly what Gl
 - It makes no network connections and has no telemetry.
 - The event tap is listen-only, so it cannot change, delay or block what you type.
 
-The whole app is about 1,200 lines of Swift in [`Sources`](Sources), with no dependencies.
+The whole app is about 1,300 lines of Swift in [`Sources`](Sources), with no dependencies.
 
 ## Troubleshooting
 
@@ -166,7 +168,7 @@ Start with the doctor. It asks the running agent for its state and checks the La
 
 ```console
 $ globe-switch doctor
-globe-switch 0.4.0
+globe-switch 0.5.0
 ✓ agent      running (pid 91028), listening for 🌐 taps
 ✓ login      starts at login (~/Library/LaunchAgents/dev.yemelianov.globe-switch.plist)
 ✓ signature  Apple Development: you@example.com (ABCDE12345), so Input Monitoring stays granted across updates
@@ -257,9 +259,9 @@ Measured on macOS 27.2, Apple Silicon:
 
 | | |
 |---|---|
-| Source | Swift package, no dependencies: ~950 lines for the agent, indicator, installer and doctor, ~280 for the tested core |
-| App | 650 KB: a 370 KB executable, the rest is the icon |
-| Memory | 8.3 MB physical footprint before the first switch, about 17 MB once the indicator and the click have been used (`ps` shows ~36 MB RSS, mostly shared system frameworks) |
+| Source | Swift package, no dependencies: ~980 lines for the agent, indicator, installer and doctor, ~360 for the tested core |
+| App | 660 KB: a 384 KB executable, the rest is the icon |
+| Memory | 8.2 MB physical footprint before the first switch, about 15 MB once the indicator and the click have been used (`ps` then shows ~50 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |
 

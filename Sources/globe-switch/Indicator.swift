@@ -1,4 +1,5 @@
 import AppKit
+import GlobeSwitchCore
 import QuartzCore
 
 /// The on-screen hint after a switch (`ShowIndicator`): every layout's flag in a row, with the active
@@ -8,7 +9,7 @@ import QuartzCore
 enum Indicator {
     struct Item: Equatable {
         let id: String
-        let flag: String?
+        let flag: LayoutFlag?
         let name: String
     }
 
@@ -22,6 +23,8 @@ enum Indicator {
     private static let height: CGFloat = 100
     private static let restScale: CGFloat = 0.55
     private static let restOpacity: Float = 0.45
+    /// One pixel of a pixel-art flag: 22 × 14 pixels make a 66 × 42 flag, about as wide as an emoji one.
+    private static let flagPixel: CGFloat = 3
 
     private static var items: [Item] = []
     private static var layers: [CALayer] = []
@@ -84,11 +87,20 @@ enum Indicator {
     private static func rebuild(_ newItems: [Item], scale: CGFloat) {
         layers.forEach { $0.removeFromSuperlayer() }
         layers = newItems.map { item in
-            let image = picture(of: item)
             let layer = CALayer()
-            layer.bounds = CGRect(origin: .zero, size: image.size)
-            layer.contentsScale = scale
-            layer.contents = image.layerContents(forContentsScale: scale)
+            if case .region(let code)? = item.flag, let flag = PixelFlag.byRegion[code], let image = bitmap(of: flag) {
+                layer.bounds = CGRect(x: 0, y: 0, width: CGFloat(PixelFlag.width) * flagPixel,
+                                      height: CGFloat(PixelFlag.height) * flagPixel)
+                layer.contents = image
+                // Scaled up and down without smoothing, so the pixels stay sharp squares.
+                layer.magnificationFilter = .nearest
+                layer.minificationFilter = .nearest
+            } else {
+                let image = picture(of: item)
+                layer.bounds = CGRect(origin: .zero, size: image.size)
+                layer.contentsScale = scale
+                layer.contents = image.layerContents(forContentsScale: scale)
+            }
             layer.shadowOffset = .zero
             panel.contentView?.layer?.addSublayer(layer)
             return layer
@@ -96,11 +108,21 @@ enum Indicator {
         items = newItems
     }
 
-    /// The flag as a picture, or the layout's name when it has none.
+    /// A pixel-art flag at one image pixel per flag pixel.
+    private static func bitmap(of flag: PixelFlag) -> CGImage? {
+        guard let provider = CGDataProvider(data: Data(flag.rgba) as CFData),
+              let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        return CGImage(width: PixelFlag.width, height: PixelFlag.height, bitsPerComponent: 8, bitsPerPixel: 32,
+                       bytesPerRow: PixelFlag.width * 4, space: space,
+                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                       provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
+    }
+
+    /// The emoji flag or the user's text as a picture, or the layout's name when it has no flag.
     private static func picture(of item: Item) -> NSImage {
         let text: NSAttributedString
         if let flag = item.flag {
-            text = NSAttributedString(string: flag, attributes: [.font: NSFont.systemFont(ofSize: 56)])
+            text = NSAttributedString(string: flag.description, attributes: [.font: NSFont.systemFont(ofSize: 56)])
         } else {
             text = NSAttributedString(string: item.name, attributes: [
                 .font: NSFont.systemFont(ofSize: 26, weight: .semibold), .foregroundColor: NSColor.white,

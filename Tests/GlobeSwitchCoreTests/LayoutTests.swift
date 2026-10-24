@@ -153,25 +153,31 @@ private let rus = "com.apple.keylayout.Russian"
     }
 
     @Test func usesTheLanguagesUsualRegion() {
-        #expect(layoutFlag(id: ukr, languages: ["uk", "be"]) == "🇺🇦")
-        #expect(layoutFlag(id: abc, languages: ["en", "de"]) == "🇺🇸")
-        #expect(layoutFlag(id: ger, languages: ["de"]) == "🇩🇪")
-        #expect(layoutFlag(id: "com.apple.inputmethod.Kotoeri.RomajiTyping.Japanese", languages: ["ja"]) == "🇯🇵")
+        #expect(layoutFlag(id: ukr, languages: ["uk", "be"]) == .region("UA"))
+        #expect(layoutFlag(id: abc, languages: ["en", "de"]) == .region("US"))
+        #expect(layoutFlag(id: ger, languages: ["de"]) == .region("DE"))
+        #expect(layoutFlag(id: "com.apple.inputmethod.Kotoeri.RomajiTyping.Japanese", languages: ["ja"]) == .region("JP"))
     }
 
     @Test func layoutsNamedAfterACountryUseItsFlag() {
-        #expect(layoutFlag(id: "com.apple.keylayout.British", languages: ["en"]) == "🇬🇧")
-        #expect(layoutFlag(id: "com.apple.keylayout.British-PC", languages: ["en"]) == "🇬🇧")
-        #expect(layoutFlag(id: "com.apple.keylayout.SwissGerman", languages: ["de"]) == "🇨🇭")
-        #expect(layoutFlag(id: "com.apple.keylayout.Canadian-CSA", languages: ["en"]) == "🇨🇦")
-        #expect(layoutFlag(id: "com.apple.keylayout.Portuguese", languages: ["pt"]) == "🇵🇹")
+        #expect(layoutFlag(id: "com.apple.keylayout.British", languages: ["en"]) == .region("GB"))
+        #expect(layoutFlag(id: "com.apple.keylayout.British-PC", languages: ["en"]) == .region("GB"))
+        #expect(layoutFlag(id: "com.apple.keylayout.SwissGerman", languages: ["de"]) == .region("CH"))
+        #expect(layoutFlag(id: "com.apple.keylayout.Canadian-CSA", languages: ["en"]) == .region("CA"))
+        #expect(layoutFlag(id: "com.apple.keylayout.Portuguese", languages: ["pt"]) == .region("PT"))
     }
 
     @Test func theUsersChoiceWins() {
-        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "GB"]) == "🇬🇧")
-        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "EN"]) == "EN")
-        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "🏴"]) == "🏴")
-        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [ukr: "GB"]) == "🇺🇸")
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "GB"]) == .region("GB"))
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "EN"]) == .text("EN"))
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "🏴"]) == .text("🏴"))
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [ukr: "GB"]) == .region("US"))
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "gb"]) == .region("GB"))
+    }
+
+    @Test func printsAsTheEmojiOrTheText() {
+        #expect(LayoutFlag.region("UA").description == "🇺🇦")
+        #expect(LayoutFlag.text("EN").description == "EN")
     }
 
     @Test func noFlagWithoutALanguage() {
