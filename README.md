@@ -129,16 +129,20 @@ Settings live in the `dev.yemelianov.globe-switch` preferences domain. The agent
 | `TapWindowMilliseconds` | `600` | How long 🌐 may be held and still count as a tap (100–2000) |
 | `SkippedLayouts` | none | Layouts a tap never switches to, as IDs from `globe-switch --list` |
 | `CycleOrder` | `list` | `list` goes to the next layout in system order; `recent` goes back to the previous one, like a quick Ctrl+Space |
-| `ShowIndicator` | `false` | Shows the new layout's name for a moment after each switch |
+| `ShowIndicator` | `true` | Shows the new layout's flag for a moment after each switch |
+| `LayoutFlags` | none | Your own flag per layout: a region code such as `GB`, or any text |
 
 ```sh
 defaults write dev.yemelianov.globe-switch CycleOrder -string recent
 defaults write dev.yemelianov.globe-switch SkippedLayouts -array com.apple.keylayout.Russian
-defaults write dev.yemelianov.globe-switch ShowIndicator -bool true
+defaults write dev.yemelianov.globe-switch LayoutFlags -dict com.apple.keylayout.ABC GB
+defaults write dev.yemelianov.globe-switch ShowIndicator -bool false
 defaults delete dev.yemelianov.globe-switch ShowIndicator    # back to the default
 ```
 
-The indicator cannot take keystrokes the way macOS's picker does. It is a panel that never becomes the key window, doesn't activate GlobeSwitch, and ignores the mouse; `tools/globe-probe type` checks that every letter typed right after a tap still arrives.
+The indicator shows only the flag, with no background around it: one the layout is named after (British → 🇬🇧), otherwise the usual one for its language (Ukrainian → 🇺🇦, ABC → 🇺🇸), or yours from `LayoutFlags`. A layout without any flag shows its name. `globe-switch doctor` lists the flags it will use.
+
+The indicator cannot take keystrokes the way macOS's picker does. It is a panel that never becomes the key window, doesn't activate GlobeSwitch, and ignores the mouse; `tools/globe-probe type` checks that every letter typed right after a tap still arrives, and refuses to type when another app is in front.
 
 ## Privacy
 
@@ -157,12 +161,12 @@ Start with the doctor. It asks the running agent for its state and checks the La
 
 ```console
 $ globe-switch doctor
-globe-switch 0.3.0
+globe-switch 0.4.0
 ✓ agent      running (pid 91028), listening for 🌐 taps
 ✓ login      starts at login (~/Library/LaunchAgents/dev.yemelianov.globe-switch.plist)
 ✓ signature  Apple Development: you@example.com (ABCDE12345), so Input Monitoring stays granted across updates
 ✓ globe key  Press 🌐 key to: Do Nothing (globe-switch handles it)
-✓ layouts    ABC → Ukrainian
+✓ layouts    🇺🇸 ABC → 🇺🇦 Ukrainian
 ✓ settings   defaults
 ✓ activity   12 switches since the agent started (last one 40 s ago), 0 bounced back
 
@@ -250,7 +254,7 @@ Measured on macOS 27.2, Apple Silicon:
 |---|---|
 | Source | Swift package, no dependencies: ~840 lines for the agent, installer and doctor, ~160 for the tested core |
 | App | 560 KB: a 283 KB executable, the rest is the icon |
-| Memory | 8.3 MB physical footprint, about 12 MB once the indicator has been shown (`ps` shows ~36 MB RSS, mostly shared system frameworks) |
+| Memory | 8.3 MB physical footprint before the first switch, about 12 MB once the indicator has been shown (`ps` shows ~36 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |
 

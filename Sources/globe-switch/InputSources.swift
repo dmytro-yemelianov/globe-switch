@@ -1,5 +1,6 @@
 import Carbon
 import Foundation
+import GlobeSwitchCore
 
 func sourceID(_ source: TISInputSource) -> String? {
     stringProperty(source, kTISPropertyInputSourceID)
@@ -7,6 +8,18 @@ func sourceID(_ source: TISInputSource) -> String? {
 
 func localizedName(_ source: TISInputSource) -> String? {
     stringProperty(source, kTISPropertyLocalizedName)
+}
+
+/// The languages a layout types, most important first.
+func languages(_ source: TISInputSource) -> [String] {
+    guard let ptr = TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages) else { return [] }
+    return Unmanaged<CFArray>.fromOpaque(ptr).takeUnretainedValue() as? [String] ?? []
+}
+
+/// How the indicator and the doctor show a layout: its flag, if it has one, and its name.
+func flagAndName(_ source: TISInputSource, overrides: [String: String]) -> (flag: String?, name: String) {
+    let id = sourceID(source) ?? "?"
+    return (layoutFlag(id: id, languages: languages(source), overrides: overrides), localizedName(source) ?? id)
 }
 
 private func stringProperty(_ source: TISInputSource, _ key: CFString) -> String? {

@@ -71,7 +71,8 @@ private let rus = "com.apple.keylayout.Russian"
         #expect(settings == Settings())
         #expect(settings.tapWindowMilliseconds == 600)
         #expect(settings.cycleOrder == .list)
-        #expect(!settings.showIndicator)
+        #expect(settings.showIndicator)
+        #expect(settings.layoutFlags.isEmpty)
         #expect(settings.changes.isEmpty)
     }
 
@@ -80,15 +81,18 @@ private let rus = "com.apple.keylayout.Russian"
             "TapWindowMilliseconds": 400,
             "SkippedLayouts": [rus],
             "CycleOrder": "recent",
-            "ShowIndicator": true,
+            "ShowIndicator": false,
+            "LayoutFlags": [abc: "GB"],
         ])
         #expect(settings.tapWindowMilliseconds == 400)
         #expect(settings.tapWindowNanos == 400_000_000)
         #expect(settings.skippedLayouts == [rus])
         #expect(settings.cycleOrder == .recent)
-        #expect(settings.showIndicator)
+        #expect(!settings.showIndicator)
+        #expect(settings.layoutFlags == [abc: "GB"])
         #expect(settings.changes == [
-            "TapWindowMilliseconds=400", "SkippedLayouts=\(rus)", "CycleOrder=recent", "ShowIndicator=true",
+            "TapWindowMilliseconds=400", "SkippedLayouts=\(rus)", "CycleOrder=recent", "ShowIndicator=false",
+            "LayoutFlags=\(abc):GB",
         ])
     }
 
@@ -103,8 +107,45 @@ private let rus = "com.apple.keylayout.Russian"
             "SkippedLayouts": rus,
             "CycleOrder": "random",
             "ShowIndicator": "yes",
+            "LayoutFlags": ["GB"],
         ])
         #expect(settings == Settings())
+    }
+}
+
+@Suite struct FlagTests {
+    @Test func turnsRegionCodesIntoFlags() {
+        #expect(flagEmoji(region: "UA") == "🇺🇦")
+        #expect(flagEmoji(region: "gb") == "🇬🇧")
+        #expect(flagEmoji(region: "USA") == nil)
+        #expect(flagEmoji(region: "1A") == nil)
+        #expect(flagEmoji(region: "EN") == nil) // a language, not a region
+    }
+
+    @Test func usesTheLanguagesUsualRegion() {
+        #expect(layoutFlag(id: ukr, languages: ["uk", "be"]) == "🇺🇦")
+        #expect(layoutFlag(id: abc, languages: ["en", "de"]) == "🇺🇸")
+        #expect(layoutFlag(id: ger, languages: ["de"]) == "🇩🇪")
+        #expect(layoutFlag(id: "com.apple.inputmethod.Kotoeri.RomajiTyping.Japanese", languages: ["ja"]) == "🇯🇵")
+    }
+
+    @Test func layoutsNamedAfterACountryUseItsFlag() {
+        #expect(layoutFlag(id: "com.apple.keylayout.British", languages: ["en"]) == "🇬🇧")
+        #expect(layoutFlag(id: "com.apple.keylayout.British-PC", languages: ["en"]) == "🇬🇧")
+        #expect(layoutFlag(id: "com.apple.keylayout.SwissGerman", languages: ["de"]) == "🇨🇭")
+        #expect(layoutFlag(id: "com.apple.keylayout.Canadian-CSA", languages: ["en"]) == "🇨🇦")
+        #expect(layoutFlag(id: "com.apple.keylayout.Portuguese", languages: ["pt"]) == "🇵🇹")
+    }
+
+    @Test func theUsersChoiceWins() {
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "GB"]) == "🇬🇧")
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "EN"]) == "EN")
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [abc: "🏴"]) == "🏴")
+        #expect(layoutFlag(id: abc, languages: ["en"], overrides: [ukr: "GB"]) == "🇺🇸")
+    }
+
+    @Test func noFlagWithoutALanguage() {
+        #expect(layoutFlag(id: "com.example.Custom", languages: []) == nil)
     }
 }
 

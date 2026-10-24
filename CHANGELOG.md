@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-10-24
+
+- New: the indicator shows the new layout's flag, and only the flag, with no background around it: one the layout is named after (British → 🇬🇧), otherwise the usual one for its language (Ukrainian → 🇺🇦, ABC → 🇺🇸). A layout without a flag shows its name.
+- New: `LayoutFlags` picks your own flag per layout, as a region code (`GB`) or any text.
+- Changed: `ShowIndicator` is on by default. Turn it off with `defaults write dev.yemelianov.globe-switch ShowIndicator -bool false`.
+- Changed: the doctor lists each layout with its flag.
+- Development: `globe-probe type` refuses to type when another app is in front, so its test letters can't land in your window.
+
 ## 0.3.0 — 2026-10-24
 
 - New: GlobeSwitch.app. `globe-switch install` copies it to `~/Applications` and points the LaunchAgent at its executable, with `AssociatedBundleIdentifiers` so that Login Items & Extensions lists it as GlobeSwitch. Input Monitoring is granted to GlobeSwitch, with its own icon, instead of a bare binary path. Opening the app from Finder installs it too and shows the doctor's report. Requires macOS 13.

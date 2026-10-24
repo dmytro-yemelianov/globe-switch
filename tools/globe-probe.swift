@@ -160,10 +160,21 @@ case "type":
     window.makeFirstResponder(field)
     pumpEvents(800)
     var indicatorSeen = false
+    // Synthetic keys go to whichever app is in front. If that isn't us (the user is busy in another
+    // app, and macOS 14+ won't hand over focus), stop rather than type into their window.
+    func frontApp() -> String { NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?" }
+    guard NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid(), window.isKeyWindow else {
+        print("not run: \(frontApp()) is in front, and the probe won't type into another app")
+        exit(1)
+    }
     for i in 1...count {
         let before = field.stringValue.count
         tapGlobe()
         pumpEvents(typeAfter)
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() else {
+            print("#\(i) STOLEN by \(frontApp()) after the tap; stopped without typing")
+            exit(1)
+        }
         for down in [true, false] {
             let e = CGEvent(keyboardEventSource: hid, virtualKey: 0, keyDown: down)! // the A key
             e.post(tap: .cghidEventTap)

@@ -129,7 +129,8 @@ func switchToNextLayout() {
     if status != noErr {
         log("TISSelectInputSource(\(nextID)) failed: \(status) \(context())", .error)
     } else if settings.showIndicator {
-        Indicator.show(localizedName(next) ?? nextID)
+        let shown = flagAndName(next, overrides: settings.layoutFlags)
+        Indicator.show(flag: shown.flag, name: shown.name)
     }
 }
 
