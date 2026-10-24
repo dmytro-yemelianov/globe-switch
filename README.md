@@ -1,7 +1,8 @@
 # globe-switch
 
 [![macOS](https://img.shields.io/badge/macOS-🌐%20key-58d6a8.svg?logo=apple)](#install)
-[![Swift](https://img.shields.io/badge/swift-single%20file-f05138.svg?logo=swift)](GlobeSwitch.swift)
+[![CI](https://github.com/dmytro-yemelianov/globe-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/dmytro-yemelianov/globe-switch/actions/workflows/ci.yml)
+[![Swift](https://img.shields.io/badge/swift-no%20dependencies-f05138.svg?logo=swift)](Package.swift)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-58d6a8.svg)](#footprint)
 [![License: MIT](https://img.shields.io/badge/license-MIT-58d6a8.svg)](LICENSE)
 
@@ -52,6 +53,7 @@ flowchart LR
 - **Clean-tap detection.** A switch happens only when 🌐 is released within 600 ms with nothing else pressed while it was held. That keeps fn+arrows, fn+E (emoji), fn+F-keys, and the media keys working as before.
 - **Direct switch.** The layout changes through the Text Input Sources API in the same event callback: no helper process, no HUD, no animation.
 - **Always running.** It is a `KeepAlive` LaunchAgent, not an on-demand service, so launchd never idle-kills it and restarts it if it crashes.
+- **Self-checks.** Every 30 seconds the agent checks that it still has Input Monitoring access. If the access was revoked, the tap would go deaf without any error, so the agent restarts and waits for the grant instead. It also notices when 🌐 is no longer set to **Do Nothing** and logs that taps may bounce.
 
 ```mermaid
 stateDiagram-v2
@@ -70,7 +72,7 @@ With two layouts a tap toggles between them. With more, it moves to the next ena
 Requirements:
 
 - A Mac keyboard with a 🌐 key.
-- Xcode Command Line Tools (`xcode-select --install`) for `swiftc`.
+- Xcode Command Line Tools (`xcode-select --install`) for `swift`.
 
 Tested on macOS 27.2 on Apple Silicon. Older releases with the "Press 🌐 key to" setting (macOS 11 and later) should work but have not been tested.
 
@@ -82,10 +84,11 @@ cd globe-switch
 
 `install.sh` does the following:
 
-1. Builds `GlobeSwitch.swift`, signs the binary, and installs it to `~/.local/bin/globe-switch`.
+1. Builds the Swift package, signs the binary, and installs it to `~/.local/bin/globe-switch`.
 2. Writes and loads the LaunchAgent `~/Library/LaunchAgents/dev.yemelianov.globe-switch.plist`.
-3. Sets **System Settings → Keyboard → Press 🌐 key to** to **Do Nothing**, so macOS and globe-switch don't both switch on the same tap.
+3. Records what **System Settings → Keyboard → Press 🌐 key to** was set to, then sets it to **Do Nothing**, so macOS and globe-switch don't both switch on the same tap.
 4. Restarts `TextInputMenuAgent` and `TextInputSwitcher`. They read that setting only at launch, so without a restart they would keep switching too (see [Troubleshooting](#troubleshooting)). launchd relaunches both on demand.
+5. Runs `globe-switch doctor` to show whether everything is in place.
 
 Then allow **Input Monitoring** for `globe-switch` in **System Settings → Privacy & Security → Input Monitoring**. macOS caches the permission answer for the life of a process, so the waiting agent checks with a fresh copy of itself every two seconds. Once access is granted, it exits and launchd restarts it with the permission in effect.
 
@@ -97,16 +100,33 @@ Then allow **Input Monitoring** for `globe-switch` in **System Settings → Priv
 ./install.sh uninstall
 ```
 
-This removes the agent and the binary, and sets 🌐 back to **Change Input Source**.
+This removes the agent and the binary, and sets 🌐 back to what it was before the first install. Installs from before 0.2 did not record that, so after one of them 🌐 goes back to **Change Input Source**.
 
 ## Troubleshooting
 
-When everything works, the log at `~/Library/Logs/globe-switch.log` stays quiet. It gets a line only when something goes wrong:
+Start with the doctor. It asks the running agent for its state and checks the 🌐 setting and the layouts:
+
+```console
+$ ~/.local/bin/globe-switch doctor
+globe-switch 0.2.0
+✓ agent      running (pid 23411), listening for 🌐 taps
+✓ activity   7 switches since the agent started (last one 7 s ago), 0 bounced back
+✓ globe key  Press 🌐 key to: Do Nothing (globe-switch handles it)
+✓ layouts    ABC → Ukrainian
+
+All good.
+```
+
+Every problem it finds comes with a fix, and it exits with status 1.
+
+The agent logs to the unified log, which macOS rotates on its own. When everything works, the log stays quiet. It gets a line only when something goes wrong:
 
 | Log line | Meaning | Fix |
 |---|---|---|
 | `waiting for Input Monitoring access` | No keyboard events yet | Allow `globe-switch` in Input Monitoring |
 | `waiting for Input Monitoring access` while `globe-switch` is already on in the list | The entry was recorded for an earlier signature (an ad-hoc rebuild or another signing identity). macOS lists it by path but still checks the old signature, so turning it on does nothing | Remove it with **−**, then add `~/.local/bin/globe-switch` again with **+** |
+| `Input Monitoring access was revoked` | The permission was turned off while the agent was running | Allow `globe-switch` in Input Monitoring again; the agent picks it up within two seconds |
+| `🌐 is set to …, so macOS reacts to taps too` | The 🌐 setting is no longer **Do Nothing** | Run `./install.sh` again |
 | `bounced to … ms after a tap` | Something switched the layout back right after a tap. Usually macOS is still handling 🌐 | Check that 🌐 is set to **Do Nothing**, then run `./install.sh` again |
 | `fn held N ms, too long for a tap` | 🌐 was held past the 600 ms tap window | Tap shorter, or raise `maxTapNanos` |
 | `TISSelectInputSource(…) failed` | macOS refused the switch | Open an issue with the log line |
@@ -129,12 +149,31 @@ sequenceDiagram
 Useful commands:
 
 ```sh
+/usr/bin/log show --last 1d --predicate 'subsystem == "dev.yemelianov.globe-switch"'
+/usr/bin/log stream --predicate 'subsystem == "dev.yemelianov.globe-switch"'
 launchctl print gui/$(id -u)/dev.yemelianov.globe-switch | grep -E 'state|pid|runs'
 ~/.local/bin/globe-switch --list    # the layouts a tap cycles through
-tail -f ~/Library/Logs/globe-switch.log
 ```
 
-## Testing without pressing the key
+Use the full path `/usr/bin/log`: in zsh, the default macOS shell, a bare `log` runs a built-in command instead.
+
+## Testing
+
+The tap detection (taps, chords, long holds) and the layout cycling are plain Swift in `GlobeSwitchCore`, tested without any permissions:
+
+```sh
+swift test
+```
+
+With only the Command Line Tools for macOS 27, `swift test` sometimes fails with `plugin for module 'TestingMacros' not found`. Passing the plugin path explicitly avoids it:
+
+```sh
+swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
+```
+
+CI builds the package with warnings as errors, runs the tests, and runs shellcheck on `install.sh`.
+
+### Without pressing the key
 
 `tools/globe-probe.swift` sends synthetic 🌐 taps and measures whether the layout changed and how fast. Synthetic events reach globe-switch's event tap but not macOS's own 🌐 handling, so the probe tests globe-switch on its own. The terminal you run it from needs Accessibility access.
 
@@ -144,6 +183,7 @@ swiftc -O -o build/globe-probe tools/globe-probe.swift
 ./build/globe-probe press 3 600 40    # tap, then shift 40 ms later: must not bounce
 ./build/globe-probe chord             # fn+shift: NO-SWITCH(ok)
 ./build/globe-probe hold              # fn held 900 ms: NO-SWITCH(ok)
+./build/globe-probe scroll            # fn held while scrolling: NO-SWITCH(ok)
 ```
 
 ## Footprint
@@ -152,10 +192,10 @@ Measured on macOS 27.2, Apple Silicon:
 
 | | |
 |---|---|
-| Source | one Swift file, ~180 lines, no dependencies |
-| Binary | 83 KB |
-| Memory | 5.4 MB physical footprint (`ps` shows ~17 MB RSS, mostly shared system frameworks) |
-| CPU | 0% while idle; work happens only on key events |
+| Source | Swift package, no dependencies: ~350 lines for the agent and doctor, ~85 for the tested core |
+| Binary | 190 KB |
+| Memory | 6.4 MB physical footprint (`ps` shows ~17 MB RSS, mostly shared system frameworks) |
+| CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |
 
 ## Limitations
@@ -164,6 +204,7 @@ Measured on macOS 27.2, Apple Silicon:
 - There is no on-screen indicator of its own. The menu-bar input menu shows the current layout.
 - Tested with keyboard layouts (ABC, Ukrainian-PC). Input methods such as Japanese or Chinese IMEs are untested; switching to them from a background process is known to be unreliable on macOS.
 - Third-party keyboards without a real 🌐/fn key are not supported.
+- Not tested at the lock screen or while an app holds Secure Keyboard Entry (password fields, some terminals). macOS may hide keys from event taps there, and with 🌐 set to **Do Nothing** a tap may then do nothing.
 
 ## License
 

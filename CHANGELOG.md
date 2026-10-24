@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-24
+
+- New: `globe-switch doctor` asks the running agent for its state and checks Input Monitoring, the 🌐 setting and the enabled layouts. It prints a fix for each problem and exits with status 1 when something is broken. `install.sh` runs it at the end.
+- New: the agent checks its Input Monitoring access every 30 seconds. Revoking the access used to leave the agent running but deaf; now it restarts and waits for the grant.
+- New: the agent logs when 🌐 is no longer set to **Do Nothing**, because macOS then reacts to taps as well.
+- Changed: logs go to the unified log (`/usr/bin/log show --predicate 'subsystem == "dev.yemelianov.globe-switch"'`), which macOS rotates. `~/Library/Logs/globe-switch.log` is no longer written; uninstall removes it.
+- Changed: `install.sh` records the 🌐 setting before the first install, and uninstall restores it instead of always choosing **Change Input Source**.
+- Fixed: fn held while scrolling counted as a tap and switched the layout.
+- Development: the project is a Swift package. Tap detection and layout cycling live in `GlobeSwitchCore` with unit tests, and CI builds with warnings as errors, runs the tests and runs shellcheck. The probe gained a `scroll` check.
+
 ## 0.1.1 — 2026-10-24
 
 - Fixed: after Input Monitoring was granted, a waiting agent never noticed and stayed deaf until the next login, because macOS caches the permission answer for the life of a process. The agent now checks with a fresh copy of itself (`--check-access`) every two seconds and, once access is granted, exits so launchd restarts it with the permission in effect.

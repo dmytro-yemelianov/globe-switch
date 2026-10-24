@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: swift --version
+      - run: swift build -c release -Xswiftc -warnings-as-errors
+      - run: swift test -Xswiftc -warnings-as-errors
+      - run: "$(swift build -c release --show-bin-path)/globe-switch --version"
+      # The probe is a standalone script; keep it compiling.
+      - run: swiftc -O -warnings-as-errors -o globe-probe tools/globe-probe.swift
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck install.sh

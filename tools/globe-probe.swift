@@ -7,6 +7,7 @@
 //   globe-probe press <count> <gapMs> [typeAfterMs] tap 🌐 <count> times; optionally tap shift after
 //   globe-probe chord                               fn held while shift is tapped: must not switch
 //   globe-probe hold                                fn held 900 ms: must not switch
+//   globe-probe scroll                              fn held while the wheel scrolls: must not switch
 //   globe-probe select <inputSourceID>              select a layout directly, e.g. com.apple.keylayout.ABC
 import Carbon
 import Cocoa
@@ -122,6 +123,18 @@ case "hold":
     pump(1000)
     print("hold \(short(before))→\(short(currentID())) \(currentID() == before && changes.isEmpty ? "NO-SWITCH(ok)" : "SWITCHED(bad)")")
 
+case "scroll":
+    // fn held while the wheel scrolls one line: must NOT switch.
+    pump(200)
+    let before = currentID()
+    changes.removeAll()
+    postFlags(true); usleep(60_000)
+    CGEvent(scrollWheelEvent2Source: hid, units: .line, wheelCount: 1, wheel1: -1, wheel2: 0, wheel3: 0)?.post(tap: .cghidEventTap)
+    usleep(30_000)
+    postFlags(false)
+    pump(1000)
+    print("scroll \(short(before))→\(short(currentID())) \(currentID() == before && changes.isEmpty ? "NO-SWITCH(ok)" : "SWITCHED(bad)")")
+
 default:
-    print("usage: status | press <count> <gapMs> [typeAfterMs] | chord | hold | select <id>")
+    print("usage: status | press <count> <gapMs> [typeAfterMs] | chord | hold | scroll | select <id>")
 }
