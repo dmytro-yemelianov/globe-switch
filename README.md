@@ -158,7 +158,7 @@ Input Monitoring lets an app see every key you press, so here is exactly what Gl
 - It makes no network connections and has no telemetry.
 - The event tap is listen-only, so it cannot change, delay or block what you type.
 
-The whole app is about 1,000 lines of Swift in [`Sources`](Sources), with no dependencies.
+The whole app is about 1,200 lines of Swift in [`Sources`](Sources), with no dependencies.
 
 ## Troubleshooting
 
@@ -257,9 +257,9 @@ Measured on macOS 27.2, Apple Silicon:
 
 | | |
 |---|---|
-| Source | Swift package, no dependencies: ~840 lines for the agent, installer and doctor, ~160 for the tested core |
-| App | 560 KB: a 283 KB executable, the rest is the icon |
-| Memory | 8.3 MB physical footprint before the first switch, about 16 MB once the indicator and the click have been used (`ps` shows ~36 MB RSS, mostly shared system frameworks) |
+| Source | Swift package, no dependencies: ~950 lines for the agent, indicator, installer and doctor, ~280 for the tested core |
+| App | 650 KB: a 370 KB executable, the rest is the icon |
+| Memory | 8.3 MB physical footprint before the first switch, about 17 MB once the indicator and the click have been used (`ps` shows ~36 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |
 
