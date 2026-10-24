@@ -103,7 +103,7 @@ func diagnose() -> Diagnosis {
     } else {
         result.report("✓", "settings", settings.changes.joined(separator: ", "))
     }
-    if settings.playSound && NSSound(named: NSSound.Name(settings.sound)) == nil {
+    if settings.playSound && settings.sound != SwitchSound.builtIn && NSSound(named: NSSound.Name(settings.sound)) == nil {
         result.report("!", "settings", "Sound \(settings.sound) was not found, so switches are silent",
                       fix: "use Click, or a name from /System/Library/Sounds or ~/Library/Sounds, such as Tink or Pop")
     }

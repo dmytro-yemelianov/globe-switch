@@ -1,3 +1,4 @@
+import Foundation
 import GlobeSwitchCore
 import Testing
 
@@ -175,6 +176,28 @@ private let rus = "com.apple.keylayout.Russian"
 
     @Test func noFlagWithoutALanguage() {
         #expect(layoutFlag(id: "com.example.Custom", languages: []) == nil)
+    }
+}
+
+@Suite struct ClickTests {
+    @Test func eachLayoutGetsItsOwnPitch() {
+        #expect(Click.frequency(forLayoutAt: 0) == Click.baseFrequency)
+        #expect(abs(Click.frequency(forLayoutAt: 1) - Click.baseFrequency * pow(2, 4.0 / 12)) < 0.001)
+        #expect(abs(Click.frequency(forLayoutAt: 3) - Click.baseFrequency * 2) < 0.001)
+        let firstFour = (0..<4).map(Click.frequency(forLayoutAt:))
+        #expect(Set(firstFour).count == 4)
+        #expect(Click.frequency(forLayoutAt: 4) == Click.frequency(forLayoutAt: 0)) // round again
+    }
+
+    @Test func writesAPlayableWAV() {
+        let wav = Click.wav(frequency: 1_600)
+        #expect(wav.prefix(4) == Data("RIFF".utf8))
+        #expect(wav.subdata(in: 8..<12) == Data("WAVE".utf8))
+        let samples = Int(44_100 * 0.040)
+        #expect(wav.count == 44 + samples * 2)
+        // A real click, not silence: the loudest sample is well above zero.
+        let pcm = wav.dropFirst(44).withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
+        #expect(pcm.map { abs(Int($0)) }.max()! > 10_000)
     }
 }
 

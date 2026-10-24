@@ -141,7 +141,7 @@ func switchToNextLayout() {
         Indicator.show(items, from: currentID, to: nextID)
     }
     if settings.playSound {
-        SwitchSound.play(settings.sound, volume: settings.soundVolume)
+        SwitchSound.play(settings.sound, volume: settings.soundVolume, layoutIndex: ids.firstIndex(of: nextID) ?? 0)
     }
 }
 

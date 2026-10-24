@@ -132,7 +132,7 @@ Settings live in the `dev.yemelianov.globe-switch` preferences domain. The agent
 | `ShowIndicator` | `true` | Shows the layouts' flags for a moment after each switch, the new one in the middle |
 | `LayoutFlags` | none | Your own flag per layout: a region code such as `GB`, or any text |
 | `PlaySound` | `true` | Plays a short click after each switch |
-| `Sound` | `Click` | GlobeSwitch's own soft click, or a sound from `/System/Library/Sounds` (`Tink`, `Pop`, …) or `~/Library/Sounds` |
+| `Sound` | `Click` | GlobeSwitch's own soft click, a little higher or lower for each layout, or a sound from `/System/Library/Sounds` (`Tink`, `Pop`, …) or `~/Library/Sounds`, the same for every layout |
 | `SoundVolume` | `0.35` | Relative to the system volume, from 0 to 1 |
 
 ```sh
@@ -249,7 +249,7 @@ swiftc -O -o build/globe-probe tools/globe-probe.swift
 ./build/globe-probe type 5 40         # tap, then type 40 ms later: every letter arrives
 ```
 
-The app icon is drawn by `swift tools/make-icon.swift`, which writes `App/AppIcon.icns`, and the click is synthesized by `swift tools/make-click.swift`, which writes `App/Click.wav`.
+The app icon is drawn by `swift tools/make-icon.swift`, which writes `App/AppIcon.icns`. The click is synthesized by the agent itself (`Click` in `GlobeSwitchCore`): a 40 ms damped tone at 1.6 kHz for the first layout in system order, then up a major third, a fifth and an octave for the next ones.
 
 ## Footprint
 

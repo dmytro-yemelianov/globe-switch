@@ -27,7 +27,8 @@ public struct Settings: Equatable {
     public var layoutFlags: [String: String] = [:]
     /// Play a short sound after each switch.
     public var playSound = true
-    /// GlobeSwitch's own soft click, or a sound from /System/Library/Sounds (Tink, Pop, …) or ~/Library/Sounds.
+    /// GlobeSwitch's own click, pitched for each layout, or a sound from /System/Library/Sounds
+    /// (Tink, Pop, …) or ~/Library/Sounds, the same for every layout.
     public var sound = "Click"
     /// Relative to the system volume, from 0 to 1.
     public var soundVolume = 0.35
