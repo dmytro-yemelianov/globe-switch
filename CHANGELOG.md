@@ -2,7 +2,7 @@
 
 ## 0.4.0 — 2026-10-24
 
-- New: the indicator shows the new layout's flag, and only the flag, with no background around it: one the layout is named after (British → 🇬🇧), otherwise the usual one for its language (Ukrainian → 🇺🇦, ABC → 🇺🇸). A layout without a flag shows its name.
+- New: the indicator lines up every layout's flag with no background. The active one is in the middle, larger and glowing in the accent colour, and on a switch the row slides with a spring so the new layout moves to the middle; quick taps carry on from wherever the row is. Flags come from the country a layout is named after (British → 🇬🇧), otherwise from its language (Ukrainian → 🇺🇦, ABC → 🇺🇸); a layout without one shows its name.
 - New: `LayoutFlags` picks your own flag per layout, as a region code (`GB`) or any text.
 - New: a soft 40 ms click after each switch, synthesized by `tools/make-click.swift`. `PlaySound`, `Sound` (the click, or any system sound such as `Tink`) and `SoundVolume` (default 0.35) control it.
 - Changed: `ShowIndicator` is on by default. Turn it off with `defaults write dev.yemelianov.globe-switch ShowIndicator -bool false`.

@@ -117,7 +117,9 @@ var recentLayouts = [currentSourceID()]
 
 func switchToNextLayout() {
     let layouts = keyboardLayouts()
-    guard let nextID = nextLayout(current: currentSourceID(), enabled: layouts.map { sourceID($0) ?? "" },
+    let ids = layouts.map { sourceID($0) ?? "" }
+    let currentID = currentSourceID()
+    guard let nextID = nextLayout(current: currentID, enabled: ids,
                                   skipped: settings.skippedLayouts, recent: recentLayouts, order: settings.cycleOrder),
           let next = layouts.first(where: { sourceID($0) == nextID }) else {
         return
@@ -131,8 +133,12 @@ func switchToNextLayout() {
         return
     }
     if settings.showIndicator {
-        let shown = flagAndName(next, overrides: settings.layoutFlags)
-        Indicator.show(flag: shown.flag, name: shown.name)
+        let shownIDs = indicatorLayouts(enabled: ids, skipped: settings.skippedLayouts, keeping: [currentID, nextID])
+        let items = zip(ids, layouts).filter { shownIDs.contains($0.0) }.map { id, source in
+            let shown = flagAndName(source, overrides: settings.layoutFlags)
+            return Indicator.Item(id: id, flag: shown.flag, name: shown.name)
+        }
+        Indicator.show(items, from: currentID, to: nextID)
     }
     if settings.playSound {
         SwitchSound.play(settings.sound, volume: settings.soundVolume)

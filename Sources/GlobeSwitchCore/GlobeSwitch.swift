@@ -33,3 +33,9 @@ public func nextLayout(current: String?, enabled: [String], skipped: Set<String>
     }
     return others[0]
 }
+
+/// The layouts the indicator lines up, in system order: those a tap can reach, plus `keeping`
+/// (the layouts switched from and to) even when they are skipped.
+public func indicatorLayouts(enabled: [String], skipped: Set<String> = [], keeping: Set<String> = []) -> [String] {
+    enabled.filter { !skipped.contains($0) || keeping.contains($0) }
+}

@@ -65,6 +65,21 @@ private let rus = "com.apple.keylayout.Russian"
     }
 }
 
+@Suite struct IndicatorLayoutTests {
+    @Test func showsEveryLayoutInSystemOrder() {
+        #expect(indicatorLayouts(enabled: [abc, ukr, ger]) == [abc, ukr, ger])
+    }
+
+    @Test func leavesOutSkippedLayouts() {
+        #expect(indicatorLayouts(enabled: [abc, rus, ukr], skipped: [rus], keeping: [abc, ukr]) == [abc, ukr])
+    }
+
+    @Test func keepsASkippedLayoutItSwitchesFrom() {
+        // Russian was picked from the menu bar; the tap moves away from it, so it stays in the row.
+        #expect(indicatorLayouts(enabled: [abc, rus, ukr], skipped: [rus], keeping: [rus, ukr]) == [abc, rus, ukr])
+    }
+}
+
 @Suite struct SettingsTests {
     @Test func defaultsWhenNothingIsSet() {
         let settings = Settings(values: [:])
