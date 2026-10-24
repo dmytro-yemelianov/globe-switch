@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-24
+
+- Fixed: after Input Monitoring was granted, a waiting agent never noticed and stayed deaf until the next login, because macOS caches the permission answer for the life of a process. The agent now checks with a fresh copy of itself (`--check-access`) every two seconds and, once access is granted, exits so launchd restarts it with the permission in effect.
+- Docs: troubleshooting for an Input Monitoring entry recorded for an earlier signature. Re-enabling such an entry does nothing; it has to be removed and added again.
+
 ## 0.1.0 — 2026-10-24
 
 First release.

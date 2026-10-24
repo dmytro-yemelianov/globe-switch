@@ -87,9 +87,9 @@ cd globe-switch
 3. Sets **System Settings → Keyboard → Press 🌐 key to** to **Do Nothing**, so macOS and globe-switch don't both switch on the same tap.
 4. Restarts `TextInputMenuAgent` and `TextInputSwitcher`. They read that setting only at launch, so without a restart they would keep switching too (see [Troubleshooting](#troubleshooting)). launchd relaunches both on demand.
 
-Then allow **Input Monitoring** for `globe-switch` in **System Settings → Privacy & Security → Input Monitoring**. The agent waits for the permission and starts working within two seconds, without a restart.
+Then allow **Input Monitoring** for `globe-switch` in **System Settings → Privacy & Security → Input Monitoring**. macOS caches the permission answer for the life of a process, so the waiting agent checks with a fresh copy of itself every two seconds. Once access is granted, it exits and launchd restarts it with the permission in effect.
 
-**Signing.** If you have an `Apple Development` signing identity, `install.sh` uses it, and the Input Monitoring permission survives rebuilds. Otherwise it signs ad-hoc, and you need to grant the permission again after each rebuild. To pick a different identity, set `GLOBE_SWITCH_IDENTITY`.
+**Signing.** If you have an `Apple Development` signing identity, `install.sh` uses it, and the Input Monitoring permission survives rebuilds. Otherwise it signs ad-hoc, and you need to grant the permission again after each rebuild: remove `globe-switch` from the list with **−** and add it again with **+**. Turning the old entry back on is not enough (see [Troubleshooting](#troubleshooting)). To pick a different identity, set `GLOBE_SWITCH_IDENTITY`.
 
 **Uninstall.**
 
@@ -106,6 +106,7 @@ When everything works, the log at `~/Library/Logs/globe-switch.log` stays quiet.
 | Log line | Meaning | Fix |
 |---|---|---|
 | `waiting for Input Monitoring access` | No keyboard events yet | Allow `globe-switch` in Input Monitoring |
+| `waiting for Input Monitoring access` while `globe-switch` is already on in the list | The entry was recorded for an earlier signature (an ad-hoc rebuild or another signing identity). macOS lists it by path but still checks the old signature, so turning it on does nothing | Remove it with **−**, then add `~/.local/bin/globe-switch` again with **+** |
 | `bounced to … ms after a tap` | Something switched the layout back right after a tap. Usually macOS is still handling 🌐 | Check that 🌐 is set to **Do Nothing**, then run `./install.sh` again |
 | `fn held N ms, too long for a tap` | 🌐 was held past the 600 ms tap window | Tap shorter, or raise `maxTapNanos` |
 | `TISSelectInputSource(…) failed` | macOS refused the switch | Open an issue with the log line |

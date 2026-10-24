@@ -129,9 +129,24 @@ func installTap() -> Bool {
     return true
 }
 
-if CommandLine.arguments.dropFirst().first == "--list" {
+/// macOS caches the Input Monitoring answer for the life of a process, so ask a fresh copy of ourselves.
+func listenAccessGranted() -> Bool {
+    let check = Process()
+    check.executableURL = Bundle.main.executableURL
+    check.arguments = ["--check-access"]
+    guard (try? check.run()) != nil else { return false }
+    check.waitUntilExit()
+    return check.terminationStatus == 0
+}
+
+switch CommandLine.arguments.dropFirst().first {
+case "--list":
     for source in keyboardLayouts() { print(sourceID(source) ?? "?") }
     exit(0)
+case "--check-access":
+    exit(CGPreflightListenEventAccess() ? 0 : 1)
+default:
+    break
 }
 
 // Something else switching the layout right after a tap means macOS is handling 🌐 as well
@@ -153,10 +168,12 @@ if CGPreflightListenEventAccess() && installTap() {
 } else {
     CGRequestListenEventAccess()
     log("waiting for Input Monitoring access (System Settings → Privacy & Security → Input Monitoring)")
-    Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { timer in
-        guard CGPreflightListenEventAccess(), installTap() else { return }
-        timer.invalidate()
-        log("access granted, cycling \(keyboardLayouts().compactMap(sourceID))")
+    // This process will keep seeing "denied" even after the grant; exit and let launchd's
+    // KeepAlive start a fresh one that sees it.
+    Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
+        guard listenAccessGranted() else { return }
+        log("Input Monitoring access granted, restarting")
+        exit(0)
     }
 }
 CFRunLoopRun()
