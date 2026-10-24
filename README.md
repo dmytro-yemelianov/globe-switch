@@ -152,7 +152,7 @@ Measured on macOS 27.2, Apple Silicon:
 
 | | |
 |---|---|
-| Source | one Swift file, ~160 lines, no dependencies |
+| Source | one Swift file, ~180 lines, no dependencies |
 | Binary | 83 KB |
 | Memory | 5.4 MB physical footprint (`ps` shows ~17 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens only on key events |
