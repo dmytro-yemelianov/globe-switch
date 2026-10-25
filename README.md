@@ -147,7 +147,7 @@ defaults delete dev.yemelianov.globe-switch ShowIndicator    # back to the defau
 
 The indicator lines up every layout's flag, with no background around them. The active one sits in the middle, larger and glowing in your accent colour; on a switch the row slides so the new layout moves to the middle. Each layout gets the flag of the country it is named after (British → 🇬🇧), otherwise the usual one for its language (Ukrainian → 🇺🇦, ABC → 🇺🇸), or yours from `LayoutFlags`. A layout without any flag shows its name. `globe-switch doctor` lists the flags it will use.
 
-The flags are pixel art: sharp rectangles of 22 × 14 pixels. So far 🇺🇦 and 🇬🇧 are drawn; other countries show their emoji flag until theirs is.
+The flags are pixel art: sharp rectangles of 22 × 14 pixels, one for each of the 259 regions macOS has a flag emoji for (Nepal keeps its pennant shape). They live as text, one letter per pixel, in [`FlagCorpus.swift`](Sources/GlobeSwitchCore/FlagCorpus.swift): they started as public-domain flag drawings scaled down to the grid, and the ones with stars, emblems and diagonals were redrawn by hand. To change a flag, edit its block there.
 
 The indicator cannot take keystrokes the way macOS's picker does. It is a panel that never becomes the key window, doesn't activate GlobeSwitch, and ignores the mouse; `tools/globe-probe type` checks that every letter typed right after a tap still arrives, and refuses to type when another app is in front.
 
@@ -160,7 +160,7 @@ Input Monitoring lets an app see every key you press, so here is exactly what Gl
 - It makes no network connections and has no telemetry.
 - The event tap is listen-only, so it cannot change, delay or block what you type.
 
-The whole app is about 1,300 lines of Swift in [`Sources`](Sources), with no dependencies.
+The whole app is about 1,300 lines of Swift in [`Sources`](Sources), with no dependencies, plus the 4,300-line flag corpus.
 
 ## Troubleshooting
 
@@ -259,8 +259,8 @@ Measured on macOS 27.2, Apple Silicon:
 
 | | |
 |---|---|
-| Source | Swift package, no dependencies: ~980 lines for the agent, indicator, installer and doctor, ~360 for the tested core |
-| App | 660 KB: a 384 KB executable, the rest is the icon |
+| Source | Swift package, no dependencies: ~980 lines for the agent, indicator, installer and doctor, ~360 for the tested core, plus the flag corpus |
+| App | 760 KB: a 496 KB executable (about 90 KB of it the flags), the rest is the icon |
 | Memory | 8.2 MB physical footprint before the first switch, about 15 MB once the indicator and the click have been used (`ps` then shows ~50 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |

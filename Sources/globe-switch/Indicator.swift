@@ -88,7 +88,7 @@ enum Indicator {
         layers.forEach { $0.removeFromSuperlayer() }
         layers = newItems.map { item in
             let layer = CALayer()
-            if case .region(let code)? = item.flag, let flag = PixelFlag.byRegion[code], let image = bitmap(of: flag) {
+            if case .region(let code)? = item.flag, let flag = PixelFlag(region: code), let image = bitmap(of: flag) {
                 layer.bounds = CGRect(x: 0, y: 0, width: CGFloat(PixelFlag.width) * flagPixel,
                                       height: CGFloat(PixelFlag.height) * flagPixel)
                 layer.contents = image
@@ -114,7 +114,7 @@ enum Indicator {
               let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         return CGImage(width: PixelFlag.width, height: PixelFlag.height, bitsPerComponent: 8, bitsPerPixel: 32,
                        bytesPerRow: PixelFlag.width * 4, space: space,
-                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
                        provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 

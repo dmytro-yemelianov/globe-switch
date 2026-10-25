@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: a pixel-art flag for every region macOS has a flag emoji for, 259 in all, so no layout falls back to an emoji flag. Territories show the flag macOS shows for them, such as Bonaire's or Martinique's own, and Nepal keeps its pennant shape. The flags are kept as text in `FlagCorpus.swift` and read only when shown.
+
 ## 0.5.0 — 2026-10-24
 
 - Changed: the indicator draws flags as pixel art, sharp rectangles of 22 × 14 pixels that are scaled without smoothing. Ukraine and the United Kingdom are drawn so far; other countries keep their emoji flag until theirs is drawn.
