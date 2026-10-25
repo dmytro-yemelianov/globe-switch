@@ -168,7 +168,7 @@ Start with the doctor. It asks the running agent for its state and checks the La
 
 ```console
 $ globe-switch doctor
-globe-switch 0.5.0
+globe-switch 0.6.0
 ✓ agent      running (pid 91028), listening for 🌐 taps
 ✓ login      starts at login (~/Library/LaunchAgents/dev.yemelianov.globe-switch.plist)
 ✓ signature  Apple Development: you@example.com (ABCDE12345), so Input Monitoring stays granted across updates
@@ -261,7 +261,7 @@ Measured on macOS 27.2, Apple Silicon:
 |---|---|
 | Source | Swift package, no dependencies: ~980 lines for the agent, indicator, installer and doctor, ~360 for the tested core, plus the flag corpus |
 | App | 760 KB: a 496 KB executable (about 90 KB of it the flags), the rest is the icon |
-| Memory | 8.2 MB physical footprint before the first switch, about 15 MB once the indicator and the click have been used (`ps` then shows ~50 MB RSS, mostly shared system frameworks) |
+| Memory | 8.3 MB physical footprint before the first switch, about 15 MB once the indicator and the click have been used (`ps` then shows ~50 MB RSS, mostly shared system frameworks) |
 | CPU | 0% while idle; work happens on key events, plus a ~10 ms access check every 30 seconds |
 | Network | none, and no telemetry |
 
